@@ -1,0 +1,17 @@
+`Description:
+  This application is a tool to exec python scripts.
+  If you put scripts in one directory and specify path of it,
+  you can exec python scripts in any directory like 'npx' command.
+
+Usage:
+  pyx [script name] [flags] [script option]
+
+Flags:
+  -f, --find              find script using fuzzy-finder
+  -l, --list              path of target directory
+  -p, --path string       set path that target directory
+  -s, --search string     search scripts that contains string (like grep)
+      --set-path string   display version
+  -h, --help              display help of command
+  -v, --version           display version of command
+`
