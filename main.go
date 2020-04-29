@@ -1,17 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/kazuya0202-dev/pyx/cmd"
 )
 
 func main() {
-	ret := cmd.Execute()
-
-	if ret != nil {
+	if err := cmd.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
-	} else {
-		os.Exit(0)
 	}
+
+	// os.Exit(0)
 }

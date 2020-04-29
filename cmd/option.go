@@ -27,7 +27,7 @@ func (o *Option) IndexOf(args []string) (idx int) {
 }
 
 // GetValue ...
-func (o *Option) GetValue(args []string) (string, error) {
+func (o *Option) GetValueWithOption(args []string) (string, error) {
 	idx := o.IndexOf(args)
 	if idx > -1 && len(args)-1 > idx {
 		return args[idx+1], nil
@@ -50,10 +50,25 @@ func (o *Option) CheckError(err error) error {
 	return nil
 }
 
-// isOption
-func isOption(s string) bool {
-	if len(s) > 0 {
-		return s[:1] == "-"
-	}
-	return false
+// showUsage ...
+func showUsage() {
+	usage := `Description:
+  This application is a tool to exec python scripts.
+  If you put scripts in one directory and specify path of it,
+  you can exec python scripts in any directory like 'npx' command.
+
+Usage:
+  pyx [flags] [script_name] [script_option]
+
+Flags:
+  -f, --find              find script using fuzzy-finder
+  -l, --list              path of target directory
+  -p, --path string       set path that target directory
+  -s, --search string     search scripts that contains string (like grep)
+      --set-path string   display version
+  -h, --help              display help of command
+  -v, --version           display version of command
+`
+
+	fmt.Print(usage)
 }

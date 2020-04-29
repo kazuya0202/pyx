@@ -15,18 +15,20 @@ type CommandUtility struct {
 	Option  string
 	Arg     string
 	Command *exec.Cmd
-	EnvCmd  envCommand
+	EnvCmd  kz.EnvCommand
 }
 
 func (c *CommandUtility) execute() error {
-	c.Command = exec.Command(c.EnvCmd.Cmd, c.EnvCmd.Option, c.Arg)
-	println()
+	c.setCommand()
 	fmt.Printf("[%s]: %s\n", color.BlueString("EXECUTE"), c.shapeCommandString())
-	println()
-	// return nil
+	println("---------")
 
 	err := kz.ExecCmdInRealTime(c.Command)
 	return err
+}
+
+func (c *CommandUtility) setCommand() {
+	c.Command = exec.Command(c.EnvCmd.Cmd, c.EnvCmd.Option, c.Arg)
 }
 
 func (c *CommandUtility) shapeCommandString() string {

@@ -2,27 +2,18 @@ package cmd
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/ktr0731/go-fuzzyfinder"
 )
 
-// envCommand is struct.
-type envCommand struct {
-	Cmd    string // execute command
-	Option string // command option
-}
-
-// getEnvCommand determines command depend in os environment.
-func getEnvCommand() envCommand {
-	// windows
-	if runtime.GOOS == "windows" {
-		return envCommand{"cmd", "/c"}
+// isOption
+func isOption(s string) bool {
+	if len(s) > 0 {
+		return s[:1] == "-"
 	}
-	// other than windows
-	return envCommand{"sh", "-c"}
+	return false
 }
 
 func selectFzf(array []string) string {
@@ -93,25 +84,4 @@ func isNull(s string) bool {
 		return true
 	}
 	return false
-}
-
-func showUsage() {
-	usage := `Description:
-  This application is a tool to exec python scripts.
-  If you put scripts in one directory and specify path of it,
-  you can exec python scripts in any directory like 'npx' command.
-
-Usage:
-  pyx [script name] [flags] [script option]
-
-Flags:
-  -f, --find              find script using fuzzy-finder
-  -l, --list              path of target directory
-  -p, --path string       set path that target directory
-  -s, --search string     search scripts that contains string (like grep)
-      --set-path string   display version
-  -h, --help              display help of command
-  -v, --version           display version of command
-`
-	fmt.Print(usage)
 }

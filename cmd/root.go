@@ -22,11 +22,11 @@ type DictStringA struct {
 	Val []string
 }
 
-// JSONDefaults ...
-type JSONDefaults struct {
+// JSONDefaultKeys ...
+type JSONDefaultKeys struct {
 	Cmd  DictString
 	Path DictString
-	Ext  DictStringA
+	Exts DictStringA
 }
 
 // JSONKeys ...
@@ -35,6 +35,8 @@ type JSONKeys struct {
 	Path string
 	Exts []string
 }
+
+const version string = "0.1.0"
 
 var (
 	// command
@@ -51,18 +53,17 @@ var (
 		Version Option // display version
 	}
 
-	// json
-	ju *kz.JSONUtility
-
-	// json content
-	jc JSONKeys
+	jUtil *kz.JSONUtility // json
+	jKey  JSONKeys        // json content
 
 	// default content (it use when key is unset)
-	defs = JSONDefaults{
+	defs = JSONDefaultKeys{
 		Cmd:  DictString{"cmd", "python"},
 		Path: DictString{"path", kz.GetUserHomeDir()},
-		Ext:  DictStringA{"extension", []string{".py"}},
+		Exts: DictStringA{"extension", []string{".py"}},
 	}
+
+	cfgPath string // config path (under $HOME)
 
 	// error fatal
 	errFatal  = errors.New("fatal")  // os.Exit(1)
@@ -73,16 +74,15 @@ func parseArgs(args []string) error {
 	args = args[1:] // remove execute file
 
 	if opts.Version.Contains(args) {
-		println("pyx version: v0.1.0")
+		fmt.Printf("pyx version: v%s", version)
 		return errNormal
 	}
 
 	// set-path option
 	if opts.SetPath.Contains(args) {
-		p, err := opts.SetPath.GetValue(args)
+		p, err := opts.SetPath.GetValueWithOption(args)
 		if err != nil || !kz.Exists(p) {
-			fmt.Printf("The '%s' is not exist.\n", p)
-			println("or Unspecified argment.")
+			fmt.Printf("The '%s' is not exist.\nor Unspecified argment.", p)
 
 			for {
 				p = kz.GetInput("path")
@@ -92,16 +92,16 @@ func parseArgs(args []string) error {
 				fmt.Printf("The '%s' is not exist.\n", p)
 			}
 		}
-		ju.Set(defs.Path.Key, p)
-		ju.Dump(ju.Path)
+		jUtil.Set(defs.Path.Key, p)
+		jUtil.Dump(jUtil.Path)
 
-		println("\nSet path of scripts in '$HOME/.config/kazuya0202/pyx.json'")
-		println(ju.Data)
+		fmt.Printf("\nSet path of scripts in '$HOME/%s'", cfgPath)
+		println(jUtil.Data)
 		return errNormal
 	}
 
 	if opts.Path.Contains(args) {
-		p, err := opts.Path.GetValue(args)
+		p, err := opts.Path.GetValueWithOption(args)
 		if opts.Path.CheckError(err) != nil {
 			return errFatal
 		}
@@ -129,17 +129,17 @@ func parseArgs(args []string) error {
 		}
 	}
 
-	files := kz.GetFiles(jc.Path)
+	files := kz.GetFiles(jKey.Path)
 
 	// show list
 	if opts.List.Contains(args) {
-		displayList(files, jc.Exts)
+		displayList(files, jKey.Exts)
 		return errNormal
 	}
 
 	// search
 	if opts.Search.Contains(args) {
-		target, err := opts.Search.GetValue(args)
+		target, err := opts.Search.GetValueWithOption(args)
 		if opts.Search.CheckError(err) != nil {
 			return errFatal
 		}
@@ -161,9 +161,9 @@ func parseArgs(args []string) error {
 
 	isExist := false
 	scriptName := args[0]
-	scriptPath := path.Join(jc.Path, scriptName)
+	scriptPath := path.Join(jKey.Path, scriptName)
 
-	for _, x := range jc.Exts {
+	for _, x := range jKey.Exts {
 		p := scriptPath + x
 		if kz.Exists(p) {
 			scriptPath = p
@@ -183,7 +183,7 @@ func parseArgs(args []string) error {
 
 // initialize
 func initialize() {
-	// option | Option{Long, Short}
+	// difine option | Option{Long, Short}
 	opts.Help = Option{"--help", "-h"}
 	opts.SetPath = Option{"--set-path", ""}
 	opts.Search = Option{"--search", "-s"}
@@ -192,40 +192,39 @@ func initialize() {
 	opts.Path = Option{"--path", "-p"}
 	opts.Version = Option{"--version", "-v"}
 
-	// config
-	jsonPath := path.Join(kz.GetUserHomeDir(), ".config/kazuya0202/pyx.json")
-	ju = kz.NewJSONUtility(jsonPath)
+	cfgPath = ".config/kazuya0202/pyx.json"
 
-	jc.Cmd = ju.Get(defs.Cmd.Key).String()
-	jc.Path = ju.Get(defs.Path.Key).String()
-	for _, x := range ju.Get(defs.Ext.Key).Array() {
-		jc.Exts = append(jc.Exts, x.String())
+	// config
+	jsonPath := path.Join(kz.GetUserHomeDir(), cfgPath)
+	jUtil = kz.NewJSONUtility(jsonPath)
+
+	jKey.Cmd = jUtil.Get(defs.Cmd.Key).String()
+	jKey.Path = jUtil.Get(defs.Path.Key).String()
+	for _, x := range jUtil.Get(defs.Exts.Key).Array() {
+		jKey.Exts = append(jKey.Exts, x.String())
 	}
 
 	// null -> write json, set default value
-	any := false
-	if isNull(jc.Cmd) {
-		any = true
-		jc.Cmd = defs.Cmd.Val
-		ju.Set(defs.Cmd.Key, defs.Cmd.Val)
+	tmpData := jUtil.Data
+	if isNull(jKey.Cmd) {
+		jKey.Cmd = defs.Cmd.Val
+		jUtil.Set(defs.Cmd.Key, defs.Cmd.Val)
 	}
-	if isNull(jc.Path) {
-		any = true
-		jc.Path = defs.Path.Val
-		ju.Set(defs.Path.Key, defs.Path.Val)
+	if isNull(jKey.Path) {
+		jKey.Path = defs.Path.Val
+		jUtil.Set(defs.Path.Key, defs.Path.Val)
 	}
-	if len(jc.Exts) == 0 {
-		any = true
-		jc.Exts = defs.Ext.Val
-		ju.Set(defs.Ext.Key, defs.Ext.Val)
+	if len(jKey.Exts) == 0 {
+		jKey.Exts = defs.Exts.Val
+		jUtil.Set(defs.Exts.Key, defs.Exts.Val)
 	}
-	if any {
-		ju.Dump(jsonPath)
+	if jUtil.Data != tmpData {
+		jUtil.Dump(jsonPath)
 	}
 
 	// cmd
-	cmd.CmdName = jc.Cmd
-	cmd.EnvCmd = getEnvCommand()
+	cmd.CmdName = jKey.Cmd
+	cmd.EnvCmd.DetermineEnvCommand()
 }
 
 // Execute ...
@@ -240,8 +239,9 @@ func Execute() error {
 		os.Exit(1)
 	}
 
+	var ret error = nil
 	if err == nil {
-		return cmd.execute()
+		ret = cmd.execute()
 	}
-	return nil
+	return ret
 }
